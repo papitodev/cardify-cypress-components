@@ -1,0 +1,51 @@
+# .github/workflows/cypress-tests.yml
+
+name: Cypress Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  cypress-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout do código
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Instalar dependências
+        run: npm ci
+
+      - name: 🔧 Build (se necessário)
+        run: npm run build
+        if: exists('package.json') && contains(fromJson('["build", "prepare"]'), github.event_name)
+
+      - name: 🧪 Executar testes Cypress
+        uses: cypress-io/github-action@v6
+        with:
+          build: npm run build
+          start: npm start
+          wait-on: 'http://localhost:3000' # Ajuste conforme a porta da sua aplicação
+          wait-on-timeout: 60
+
+      - name: 📁 Salvar screenshots (se falhar)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots
+
+      - name: 📁 Salvar vídeos dos testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-videos
+          path: cypress/videos
